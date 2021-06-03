@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/tools/flow"
 )
 
-func Example() {
+func TestSimpleFlow(t *testing.T) {
 	var r cue.Runtime
 	inst, err := r.Compile("example.cue", `
 	a: {
@@ -25,12 +28,14 @@ func Example() {
 		log.Fatal(err)
 	}
 	controller := flow.New(nil, inst, ioTaskFunc)
-	if err := controller.Run(context.Background()); err != nil {
+	rv, err := controller.Run(context.Background())
+	if err != nil {
 		log.Fatal(err)
 	}
-	// Output:
-	// setting a.output to "hello world"
-	// setting b.output to "hello hello world"
+	aout, _ := rv.LookupPath(cue.ParsePath("a.output")).String()
+	assert.Equal(t, "hello world", aout)
+	bout, _ := rv.LookupPath(cue.ParsePath("b.output")).String()
+	assert.Equal(t, "hello hello world", bout)
 }
 
 func ioTaskFunc(v cue.Value) (flow.Runner, error) {
@@ -48,7 +53,10 @@ func ioTaskFunc(v cue.Value) (flow.Runner, error) {
 		}
 
 		outputVal := fmt.Sprintf("hello %s", inputVal)
-		fmt.Printf("setting %s.output to %q\n", t.Path(), outputVal)
+		// Output:
+		// setting a.output to "hello world"
+		// setting b.output to "hello hello world"
+		// fmt.Printf("setting %s.output to %q\n", t.Path(), outputVal)
 
 		return t.Fill(map[string]string{
 			"output": outputVal,
