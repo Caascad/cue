@@ -89,6 +89,7 @@ func (c *Controller) runLoop() {
 
 		select {
 		case <-c.context.Done():
+			c.addErr(errors.New("canceled"), "flow")
 			return
 
 		case t := <-c.taskCh:
